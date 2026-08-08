@@ -21,9 +21,9 @@ def _gpu_compat():
             name = torch.cuda.get_device_name(0)
             print(f"GPU detected: {name} (sm_{cap[0]}{cap[1]})", flush=True)
             if cap[0] < 7:
-                print("Old GPU — installing compatible PyTorch 2.1.0 (cu118)...", flush=True)
+                print("Old GPU — installing compatible PyTorch 2.2.0 (cu118)...", flush=True)
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "-q",
-                    "torch==2.1.0", "--index-url", "https://download.pytorch.org/whl/cu118"])
+                    "torch==2.2.0", "--index-url", "https://download.pytorch.org/whl/cu118"])
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "-q",
                     "transformers==4.36.2", "tokenizers==0.15.2", "accelerate==0.25.0",
                     "datasets==2.16.1", "timm", "pydicom", "opencv-python-headless"])
