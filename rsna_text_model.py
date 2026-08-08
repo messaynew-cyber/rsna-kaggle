@@ -69,14 +69,27 @@ model = AutoModelForSequenceClassification.from_pretrained(
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
     probs = 1 / (1 + np.exp(-logits))
+    y_true = (labels >= 0.5).astype(int)  # threshold soft targets for AUC
     aucs = []
     for i, l in enumerate(LABELS):
-        try:
-            aucs.append(roc_auc_score(labels[:, i], probs[:, i]))
-        except ValueError:
+        if len(np.unique(y_true[:, i])) < 2:
             aucs.append(0.5)  # single class in fold
+            continue
+        aucs.append(roc_auc_score(y_true[:, i], probs[:, i]))
     return {"mean_auc": float(np.mean(aucs)),
             **{f"auc_{l}": round(a, 4) for l, a in zip(LABELS, aucs)}}
+
+
+# 🔴 CUSTOM TRAINER — explicit BCEWithLogitsLoss.
+# HF's built-in multi-label path silently breaks with soft float targets
+# (constant predictions → AUC 0.5). This computes the loss directly.
+class SoftTargetTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.pop("labels").float()
+        outputs = model(**inputs)
+        logits = outputs.logits
+        loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels)
+        return (loss, outputs) if return_outputs else loss
 
 args = TrainingArguments(
     output_dir="./text_model",
@@ -88,6 +101,7 @@ args = TrainingArguments(
     warmup_ratio=0.1,
     lr_scheduler_type="cosine",
     fp16=True,
+    max_grad_norm=1.0,
     eval_strategy="epoch",
     save_strategy="epoch",
     logging_steps=50,
@@ -96,7 +110,7 @@ args = TrainingArguments(
     report_to=[],
 )
 
-trainer = Trainer(
+trainer = SoftTargetTrainer(
     model=model,
     args=args,
     train_dataset=tr_ds,
@@ -109,6 +123,11 @@ trainer = Trainer(
 trainer.train()
 print("\n=== FINAL VALIDATION ===")
 print(trainer.evaluate())
+
+# 🔴 Sanity check: prediction variance must be > 0 (constant outputs = broken)
+import numpy as _np
+_sanity = _np.std(trainer.predict(va_ds).predictions)
+print(f"Sanity — pred logits std: {_sanity:.4f} (must be clearly > 0)")
 
 # ── 7. PREDICT ALL TRAIN + TEST ─────────────────────────────────
 def predict(df_in):
