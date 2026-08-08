@@ -84,7 +84,7 @@ def compute_metrics(eval_pred):
 # HF's built-in multi-label path silently breaks with soft float targets
 # (constant predictions → AUC 0.5). This computes the loss directly.
 class SoftTargetTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         labels = inputs.pop("labels").float()
         outputs = model(**inputs)
         logits = outputs.logits
