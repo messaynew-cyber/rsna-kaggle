@@ -54,7 +54,7 @@ LABELS = ['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral 
 
 # 🔴 AUTO-DETECT competition data dir (slug varies; never hardcode)
 print("Mounted inputs:", os.listdir("/kaggle/input"))
-_candidates = glob.glob("/kaggle/input/*/train_series.csv")
+_candidates = glob.glob("/kaggle/input/**/train_series.csv", recursive=True)
 assert _candidates, ("Competition data NOT found. Add Input → 'RSNA Knee Abnormality "
                      "Detection' (trophy icon) and check it contains train_series.csv")
 DATA_DIR = os.path.dirname(_candidates[0])
