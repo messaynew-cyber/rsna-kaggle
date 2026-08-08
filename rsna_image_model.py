@@ -26,7 +26,13 @@ import cv2
 LABELS = ['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA',
           'PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']
 
-DATA_DIR = "/kaggle/input/rsna-knee-abnormality-detection"
+# 🔴 AUTO-DETECT competition data dir (slug varies; never hardcode)
+print("Mounted inputs:", os.listdir("/kaggle/input"))
+_candidates = glob.glob("/kaggle/input/*/train_series.csv")
+assert _candidates, ("Competition data NOT found. Add Input → 'RSNA Knee Abnormality "
+                     "Detection' (trophy icon) and check it contains train_series.csv")
+DATA_DIR = os.path.dirname(_candidates[0])
+print("Using data dir:", DATA_DIR)
 SERIES_DIR = os.path.join(DATA_DIR, "train_series")
 CACHE_DIR = "/kaggle/working/img_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
