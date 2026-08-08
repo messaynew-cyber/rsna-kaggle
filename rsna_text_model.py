@@ -7,6 +7,31 @@
 #   2. Settings: Accelerator = GPU T4 x2 (or P100), Internet = ON
 #   3. Run all. ~15-25 min with T4. Saves text_preds.csv + model to /kaggle/working
 
+# 🔴 GPU SELF-HEALING — Kaggle's GPU lottery hands out P100/K80 (sm_60) which
+# the default PyTorch build can't run. Detect and install a compatible build.
+import os, subprocess, sys
+def _gpu_compat():
+    try:
+        import torch
+        if torch.cuda.is_available():
+            cap = torch.cuda.get_device_capability(0)
+            name = torch.cuda.get_device_name(0)
+            print(f"GPU detected: {name} (sm_{cap[0]}{cap[1]})", flush=True)
+            if cap[0] < 7:
+                print("Old GPU — installing compatible PyTorch 2.0.1 (cu117)...", flush=True)
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "-q",
+                    "torch==2.0.1", "--index-url", "https://download.pytorch.org/whl/cu117"])
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "-q",
+                    "transformers==4.36.2", "tokenizers==0.15.2", "accelerate==0.25.0",
+                    "datasets==2.16.1", "timm", "pydicom", "opencv-python-headless"])
+                os.environ["PYTHONPATH"] = ""
+                print("Compatible stack installed.", flush=True)
+        else:
+            print("No GPU — running on CPU (slow but works)", flush=True)
+    except ImportError:
+        pass
+_gpu_compat()
+
 import os
 import pandas as pd
 import numpy as np
